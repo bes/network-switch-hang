@@ -1,0 +1,13 @@
+[package]
+name = "network-switch-hang"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.25.0", features = ["full"] }
+reqwest = { version = "0.11.14", default-features = false, features = ["stream", "gzip", "json"] }
+futures = "0.3.26"
+thiserror = "1.0.38"
+tempfile = "3.3.0"
+tokio-util = { version = "0.7.7", features = ["compat"] }
+pin-project = "1.0.12"
