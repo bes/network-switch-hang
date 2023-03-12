@@ -442,6 +442,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "network-switch-hang"
+version = "0.1.0"
+dependencies = [
+ "futures",
+ "pin-project",
+ "reqwest",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "tokio-util",
+]
+
+[[package]]
 name = "num_cpus"
 version = "1.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -580,19 +593,6 @@ dependencies = [
  "wasm-streams",
  "web-sys",
  "winreg",
-]
-
-[[package]]
-name = "reqwest-network-switch-hang"
-version = "0.1.0"
-dependencies = [
- "futures",
- "pin-project",
- "reqwest",
- "tempfile",
- "thiserror",
- "tokio",
- "tokio-util",
 ]
 
 [[package]]

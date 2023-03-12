@@ -1,20 +1,30 @@
+use crate::progress::ProgressReadAdapter;
+use futures::TryStreamExt;
+use reqwest::{ClientBuilder, Response};
+use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
-use futures::TryStreamExt;
-use reqwest::{Client, Response};
-use std::error::Error;
-use tokio::io::AsyncWriteExt;
+use std::time::Duration;
 use tempfile::NamedTempFile;
+use tokio::io::AsyncWriteExt;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
-use crate::progress::ProgressReadAdapter;
 
 mod progress;
 
 #[tokio::main()]
 async fn main() {
-    let client = Client::new();
+    let mut target_file = std::env::current_dir().unwrap();
+    target_file.push("bbb.mp4");
+    println!("File will be downloaded to {target_file:?}");
+    let client = ClientBuilder::default()
+        // Doesn't seem to help
+        .tcp_keepalive(Some(Duration::from_secs(1)))
+        // Doesn't seem to help
+        .connect_timeout(Duration::from_secs(1))
+        .build()
+        .unwrap();
     let response = client.get("http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_native_60fps_stereo_abl.mp4").send().await.unwrap();
-    match response_to_file(response, "/Users/bes/Downloads/bbb.mp4".into()).await {
+    match response_to_file(response, target_file).await {
         Ok(_) => println!("Everything OK"),
         Err(err) => eprintln!("{err}"),
     }
@@ -64,8 +74,8 @@ pub enum ApiError {
 
 impl ApiError {
     pub fn wrap<E>(e: E) -> ApiError
-        where
-            E: Error + Send + Sync + 'static,
+    where
+        E: Error + Send + Sync + 'static,
     {
         ApiError::WrappedError(Box::new(e))
     }
@@ -76,8 +86,8 @@ pub trait WrapApiError<T> {
 }
 
 impl<T, E> WrapApiError<T> for Result<T, E>
-    where
-        E: Error + Send + Sync + 'static,
+where
+    E: Error + Send + Sync + 'static,
 {
     fn wrap_api_err(self) -> Result<T, ApiError> {
         match self {
