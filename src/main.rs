@@ -1,4 +1,3 @@
-use crate::progress::ProgressReadAdapter;
 use futures::TryStreamExt;
 use reqwest::{ClientBuilder, Response};
 use std::error::Error;
@@ -8,8 +7,10 @@ use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
 use tokio_util::compat::FuturesAsyncReadCompatExt;
+use crate::stalled_monitor::StalledReadMonitor;
 
-mod progress;
+mod stalled_monitor;
+mod error;
 
 #[tokio::main()]
 async fn main() {
@@ -17,10 +18,7 @@ async fn main() {
     target_file.push("bbb.mp4");
     println!("File will be downloaded to {target_file:?}");
     let client = ClientBuilder::default()
-        // Doesn't seem to help
-        .tcp_keepalive(Some(Duration::from_secs(1)))
-        // Doesn't seem to help
-        .connect_timeout(Duration::from_secs(1))
+        .connect_timeout(Duration::from_secs(5))
         .build()
         .unwrap();
     let response = client.get("http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_native_60fps_stereo_abl.mp4").send().await.unwrap();
@@ -39,8 +37,8 @@ async fn response_to_file(response: Response, path: PathBuf) -> Result<(), ApiEr
 
     let download = download.compat();
 
-    // Wrap download to be able to get progress in terminal
-    let mut download = ProgressReadAdapter::new(download);
+    // Wrap download to be able to detect stalled downloads
+    let mut download = StalledReadMonitor::new(download);
 
     let temp_file = tokio::task::spawn_blocking(NamedTempFile::new)
         .await
@@ -51,7 +49,8 @@ async fn response_to_file(response: Response, path: PathBuf) -> Result<(), ApiEr
         .await
         .wrap_api_err()?;
 
-    // Code hangs here forever after a network switch
+    // Code used to hang here, but will now exit with an error after being stalled for
+    // more than 5 seconds. See StalledReadMonitor for details.
     tokio::io::copy(&mut download, &mut outfile)
         .await
         .wrap_api_err()?;

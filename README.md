@@ -1,15 +1,15 @@
 # Download hangs forever after network switch
 
-Step by step:
+This repository started out as a question: Why does a `reqwest` download stall
+forever when switching between WiFi / Cellular networks on macOS or iOS?
 
-1. `cargo run` - after compiling this will start a large download.
-2. You will see progress in the terminal.
-3. Now switch networks somehow - from WiFi to wired, or WiFi to another WiFi.
-4. Progress will drop to 0 and keep going forever.
+Which prompted [this thread on URLO](https://users.rust-lang.org/t/help-tokio-copy-hangs-forever-if-network-is-switched-during-download/90678)
+and this [StackOverflow question](https://stackoverflow.com/questions/75711940/why-does-a-reqwest-response-hang-when-switching-wifi-networks-on-macos-ios),
+and this discussion on the [reqwest GitHub Discussions](https://github.com/seanmonstar/reqwest/discussions/1776) forum.
 
-## What I've tried so far
+The reason it stalls is that the underlying network stack simply really wants the
+TCP connection to succeed, and doesn't throw any errors.
 
-### [Asked a question on URLO](https://users.rust-lang.org/t/help-tokio-copy-hangs-forever-if-network-is-switched-during-download/90678)
-
-* Got the advice to set `tcp_keepalive` - didn't seem to help
-* Got the advice to set `connect_timeout` - didn't seem to help
+I have mitigated the problem in this repostory by using an AsyncRead wrapper that
+[I found on StackOverflow](https://stackoverflow.com/questions/60621835/how-to-get-callback-update-when-using-tokioiocopy?rq=1)
+and modified it to return a Polling error when a certain timeout has been reached.
